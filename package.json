@@ -1,53 +1,53 @@
 {
-	"name": "nestjs-sqs-pub-sub",
-	"version": "1.0.0",
-	"description": "",
-	"keywords": [
-		"Nest",
-		"Nestjs",
-		"SQS",
-		"Pub-Sub",
-		"Message",
-		"Broker",
-		"Microservices",
-		"Message Broker",
-		"Message Queue",
-		"Message Queue Service",
-		"Message Queue System"
-	],
-	"homepage": "https://github.com/Stingzor/nestjs-sqs#readme",
-	"bugs": {
-		"url": "https://github.com/Stingzor/nestjs-sqs/issues"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/Stingzor/nestjs-sqs.git"
-	},
-	"license": "GPL-3.0-or-later",
-	"author": "Caio K3",
-	"type": "commonjs",
-	"main": "dist/main.js",
-	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
-		"prepare": "husky",
-		"check": "biome check --write --unsafe",
-		"format": "biome format --write"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^1.9.4",
-		"@nestjs/testing": "^11.0.10",
-		"husky": "^9.0.0",
-		"ts-node": "10.9.2",
-		"tsconfig-paths": "4.2.0",
-		"typescript": "5.7.3"
-	},
-	"dependencies": {
-		"@nestjs/common": "^11.0.0",
-		"@nestjs/config": "^4.0.0",
-		"@nestjs/core": "^11.0.0",
-		"@nestjs/microservices": "^11.0.0",
-		"@aws-sdk/client-sqs": "^3.744.0",
-		"reflect-metadata": "^0.2.2",
-		"rxjs": "^7.8.1"
-	}
+    "name": "nestjs-sqs-pub-sub",
+    "version": "1.0.0",
+    "description": "",
+    "keywords": [
+        "Nest",
+        "Nestjs",
+        "SQS",
+        "Pub-Sub",
+        "Message",
+        "Broker",
+        "Microservices",
+        "Message Broker",
+        "Message Queue",
+        "Message Queue Service",
+        "Message Queue System"
+    ],
+    "homepage": "https://github.com/Stingzor/nestjs-sqs#readme",
+    "bugs": {
+        "url": "https://github.com/Stingzor/nestjs-sqs/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Stingzor/nestjs-sqs.git"
+    },
+    "license": "GPL-3.0-or-later",
+    "author": "Caio K3",
+    "type": "commonjs",
+    "main": "dist/main.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "prepare": "husky",
+        "check": "biome check --write --unsafe",
+        "format": "biome format --write"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "^1.9.4",
+        "@nestjs/testing": "^11.0.10",
+        "husky": "^9.0.0",
+        "ts-node": "10.9.2",
+        "tsconfig-paths": "4.2.0",
+        "typescript": "5.7.3"
+    },
+    "dependencies": {
+        "@nestjs/common": "^11.0.0",
+        "@nestjs/config": "^4.0.0",
+        "@nestjs/core": "^11.0.0",
+        "@nestjs/microservices": "^11.0.0",
+        "@aws-sdk/client-sqs": "^3.744.0",
+        "reflect-metadata": "^0.2.2",
+        "rxjs": "^7.8.1"
+    }
 }
