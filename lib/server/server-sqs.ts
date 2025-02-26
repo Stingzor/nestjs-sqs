@@ -8,9 +8,9 @@ import { Server } from "@nestjs/microservices";
 import { MessageConsumer } from "lib/consumers/message.consumer";
 import { SqsRecordDeserializer } from "lib/deserializers/sqs.deserializer";
 import { SqsRecordSerializer } from "lib/serializers/sqs.serializer";
+import { type Observable, from, map, tap } from "rxjs";
 import type { SqsOptions } from "../types/sqs.configuration";
 import { type SQSEvents, SQSEventsMap, SQSStatus } from "./sqs.events";
-import { from, map, type Observable, tap } from "rxjs";
 
 export class ServerSQS extends Server<SQSEvents, SQSStatus> {
     private readonly SQSClient: SQSClient;

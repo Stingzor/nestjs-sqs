@@ -2,17 +2,17 @@ import { EventEmitter } from "node:events";
 import type { Message } from "@aws-sdk/client-sqs";
 import { Logger } from "@nestjs/common";
 import type { MessageHandler } from "@nestjs/microservices";
-import { SQSEventsMap, type SQSEvents } from "../server/sqs.events";
 import {
+    type Observable,
     catchError,
     from,
     map,
     mergeMap,
-    type Observable,
     takeWhile,
     tap,
     timer,
 } from "rxjs";
+import { type SQSEvents, SQSEventsMap } from "../server/sqs.events";
 
 export type ReceiveMessagesFn = (queueName: string) => Observable<Message[]>;
 export type DeleteMessageFn = (message: Message) => Observable<Message>;
