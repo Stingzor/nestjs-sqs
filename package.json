@@ -1,0 +1,30 @@
+{
+  "name": "nestjs-sqs-pub-sub",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [
+    "Nest",
+    "Nestjs",
+    "SQS",
+    "Pub-Sub",
+    "Message",
+    "Broker",
+    "Microservices"
+  ],
+  "homepage": "https://github.com/Stingzor/nestjs-sqs#readme",
+  "bugs": {
+    "url": "https://github.com/Stingzor/nestjs-sqs/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Stingzor/nestjs-sqs.git"
+  },
+  "license": "GPL-3.0-or-later",
+  "author": "Caio K3",
+  "type": "commonjs",
+  "main": "dist/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {}
+}
