@@ -12,18 +12,18 @@ export enum SQSStatus {
 
 export enum SQSEventsMap {
     STARTED = "started",
+    STOPPED = "stopped",
     FAILED = "failed",
-    RECEIVE_MESSAGE = "receiveMessage",
+    RECEIVE_MESSAGES = "receiveMessages",
     PROCESS_MESASGE = "processMessage",
     DELETE_MESSAGE = "deleteMessage",
-    CHANGE_MESSAGE_VISIBILITY = "changeMessageVisibility",
 }
 
 export type SQSEvents = {
     [SQSEventsMap.STARTED]: VoidCallback;
+    [SQSEventsMap.STOPPED]: VoidCallback;
     [SQSEventsMap.FAILED]: OnErrorCallback;
-    [SQSEventsMap.RECEIVE_MESSAGE]: VoidCallback;
+    [SQSEventsMap.RECEIVE_MESSAGES]: VoidCallback;
     [SQSEventsMap.PROCESS_MESASGE]: VoidCallback;
     [SQSEventsMap.DELETE_MESSAGE]: VoidCallback;
-    [SQSEventsMap.CHANGE_MESSAGE_VISIBILITY]: VoidCallback;
 };

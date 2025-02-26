@@ -1,6 +1,7 @@
 import {
     type Message,
     ReceiveMessageCommand,
+    type ReceiveMessageCommandOutput,
     SQSClient,
 } from "@aws-sdk/client-sqs";
 import { Server } from "@nestjs/microservices";
@@ -8,7 +9,8 @@ import { MessageConsumer } from "lib/consumers/message.consumer";
 import { SqsRecordDeserializer } from "lib/deserializers/sqs.deserializer";
 import { SqsRecordSerializer } from "lib/serializers/sqs.serializer";
 import type { SqsOptions } from "../types/sqs.configuration";
-import { type SQSEvents, SQSEventsMap, type SQSStatus } from "./sqs.events";
+import { type SQSEvents, SQSEventsMap, SQSStatus } from "./sqs.events";
+import { from, map, type Observable, tap } from "rxjs";
 
 export class ServerSQS extends Server<SQSEvents, SQSStatus> {
     private readonly SQSClient: SQSClient;
@@ -26,45 +28,76 @@ export class ServerSQS extends Server<SQSEvents, SQSStatus> {
     public async listen(
         callback: (err?: unknown, ...optionalParams: unknown[]) => void,
     ): Promise<void> {
+        this._status$.next(SQSStatus.CONNECTING);
+
         this.initializeSerializer(this.options);
         this.initializeDeserializer(this.options);
 
         return this.start(callback).catch(callback);
     }
 
-    public close() {}
+    public async close(): Promise<void> {
+        this._status$.next(SQSStatus.DISCONNECTING);
+
+        for (const consumer of this.messageConsumers) {
+            consumer.stop();
+        }
+
+        this._status$.next(SQSStatus.DISCONNECTED);
+        this.logger.log("SQS server stopped");
+        return Promise.resolve();
+    }
 
     public async start(
         callback: (err?: unknown, ...optionalParams: unknown[]) => void,
     ): Promise<void> {
+        this._status$.next(SQSStatus.CONNECTING);
+
         const discoveredQueueNames = this.discoverQueueNames();
+        if (discoveredQueueNames.length === 0) {
+            this.logger.warn(
+                "No queue names discovered. Please make sure to register your handlers.",
+            );
+            return callback();
+        }
 
         for (const queueName of discoveredQueueNames) {
             const messageConsumer = new MessageConsumer(
                 queueName,
-                this.getHandlerByPattern(queueName),
-                (queueName) => this.receiveMessage(queueName),
+                this.options.poolingDelayInMilliseconds,
+                (queueName) => this.receiveMessages(queueName),
+                (message) => this.processMessage(message),
+                (message) => this.deleteMessage(message),
+                (error, message) =>
+                    this.handleProcessingFailure(error, message),
             );
 
             messageConsumer.on(SQSEventsMap.STARTED, () =>
                 this.logger.log(`Consumer for ${queueName} started`),
             );
 
-            messageConsumer.on(SQSEventsMap.RECEIVE_MESSAGE, () =>
+            messageConsumer.on(SQSEventsMap.STOPPED, () =>
+                this.logger.log(`Consumer for ${queueName} stopped`),
+            );
+
+            messageConsumer.on(SQSEventsMap.RECEIVE_MESSAGES, () =>
                 this.logger.log(`Received message from ${queueName}`),
             );
 
-            messageConsumer.on(SQSEventsMap.PROCESS_MESASGE, () =>
-                this.logger.log(`Processing message from ${queueName}`),
-            );
-
-            messageConsumer.on(SQSEventsMap.DELETE_MESSAGE, () =>
-                this.logger.log(`Deleting message from ${queueName}`),
-            );
-
-            messageConsumer.on(SQSEventsMap.CHANGE_MESSAGE_VISIBILITY, () =>
+            messageConsumer.on(SQSEventsMap.PROCESS_MESASGE, (messageId) =>
                 this.logger.log(
-                    `Changing message visibility from ${queueName}`,
+                    `Processing message from ${queueName}:#{messageId}`,
+                ),
+            );
+
+            messageConsumer.on(SQSEventsMap.DELETE_MESSAGE, (messageId) =>
+                this.logger.log(
+                    `Deleting message from ${queueName}:#${messageId}`,
+                ),
+            );
+            messageConsumer.on(SQSEventsMap.FAILED, (messageId) =>
+                this.logger.error(
+                    `Failed processing message from ${queueName}:#${messageId}`,
                 ),
             );
 
@@ -75,6 +108,8 @@ export class ServerSQS extends Server<SQSEvents, SQSStatus> {
             this.messageConsumers.push(messageConsumer);
             messageConsumer.start();
         }
+
+        this._status$.next(SQSStatus.CONNECTED);
 
         callback();
     }
@@ -90,7 +125,7 @@ export class ServerSQS extends Server<SQSEvents, SQSStatus> {
             });
         } else {
             for (const consumer of this.messageConsumers) {
-                consumer.addProcessEventListener(eventKey, eventCallback);
+                consumer.on(eventKey, eventCallback);
             }
         }
     }
@@ -105,20 +140,40 @@ export class ServerSQS extends Server<SQSEvents, SQSStatus> {
         return this.SQSClient as T;
     }
 
-    private async receiveMessage(queueName: string): Promise<Message[]> {
+    private receiveMessages(queueName: string): Observable<Message[]> {
         const queueUrl = `${this.options.baseQueueUrl}/${queueName}`;
 
-        const messages = await this.SQSClient.send(
-            new ReceiveMessageCommand({
-                QueueUrl: queueUrl,
-                MaxNumberOfMessages: this.options.batchReceiveSize,
-                WaitTimeSeconds: this.options.waitTimeSeconds,
-                MessageAttributeNames: ["All"],
-                MessageSystemAttributeNames: ["All"],
-            }),
-        );
+        const receiveMessageCommand = new ReceiveMessageCommand({
+            QueueUrl: queueUrl,
+            MaxNumberOfMessages: this.options.batchReceiveSize,
+            WaitTimeSeconds: this.options.waitTimeSeconds,
+            MessageAttributeNames: ["All"],
+            MessageSystemAttributeNames: ["All"],
+        });
 
-        return messages.Messages ?? [];
+        return from(this.SQSClient.send(receiveMessageCommand)).pipe(
+            tap((commandOutput: ReceiveMessageCommandOutput) =>
+                this.logger.log(
+                    `Received ${commandOutput.Messages?.length} message from ${queueName}`,
+                ),
+            ),
+            map((commandOutput) => commandOutput.Messages ?? []),
+        );
+    }
+
+    private processMessage(message: Message): Observable<Message> {
+        throw new Error("Method not implemented.");
+    }
+
+    private handleProcessingFailure(
+        error: unknown,
+        message: Message,
+    ): Observable<Message> {
+        throw new Error("Method not implemented.");
+    }
+
+    deleteMessage(message: Message): Observable<Message> {
+        throw new Error("Method not implemented.");
     }
 
     protected initializeSerializer(options: SqsOptions["options"]): void {
