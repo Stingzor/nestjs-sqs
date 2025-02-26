@@ -1,5 +1,5 @@
-import type { Deserializer, IncomingResponse } from "@nestjs/microservices";
 import type { Message } from "@aws-sdk/client-sqs";
+import type { Deserializer, IncomingResponse } from "@nestjs/microservices";
 
 export class SqsRecordDeserializer
 	implements Deserializer<Message, IncomingResponse>

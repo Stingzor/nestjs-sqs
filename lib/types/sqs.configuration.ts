@@ -1,4 +1,4 @@
-import type { Serializer, Deserializer } from "@nestjs/microservices";
+import type { Deserializer, Serializer } from "@nestjs/microservices";
 
 export type SqsCredentials = {
 	accessKeyId: string;

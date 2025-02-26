@@ -1,9 +1,9 @@
-import { Server } from "@nestjs/microservices";
 import { SQSClient } from "@aws-sdk/client-sqs";
-import type { SqsOptions } from "../types/sqs.configuration";
-import type { SQSEvents, SQSStatus } from "./sqs.events";
+import { Server } from "@nestjs/microservices";
 import { SqsRecordDeserializer } from "lib/deserializers/sqs.deserializer";
 import { SqsRecordSerializer } from "lib/serializers/sqs.serializer";
+import type { SqsOptions } from "../types/sqs.configuration";
+import type { SQSEvents, SQSStatus } from "./sqs.events";
 
 export class ServerSQS extends Server<SQSEvents, SQSStatus> {
 	private readonly SQSClient: SQSClient;
