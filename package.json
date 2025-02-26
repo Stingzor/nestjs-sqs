@@ -28,7 +28,10 @@
 	"type": "commonjs",
 	"main": "dist/main.js",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"prepare": "husky",
+		"check": "biome check --write --unsafe",
+		"format": "biome format --write"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
