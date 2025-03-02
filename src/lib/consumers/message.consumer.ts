@@ -1,29 +1,16 @@
 import { EventEmitter } from "node:events";
 import type { Message } from "@aws-sdk/client-sqs";
-import { Logger } from "@nestjs/common";
-import type { MessageHandler } from "@nestjs/microservices";
-import {
-    type Observable,
-    catchError,
-    from,
-    map,
-    mergeMap,
-    takeWhile,
-    tap,
-    timer,
-} from "rxjs";
-import { type SQSEvents, SQSEventsMap } from "../server/sqs.events";
+import { type Observable, type Subscription, catchError, from, map, mergeMap, takeWhile, tap, timer } from "rxjs";
+import { type SQSEvents, SQSEventsMap } from "@lib/server/sqs.events";
 
 export type ReceiveMessagesFn = (queueName: string) => Observable<Message[]>;
 export type DeleteMessageFn = (message: Message) => Observable<Message>;
 export type ProcessMessageFn = (message: Message) => Observable<Message>;
-export type HandleFailureFn = (
-    error: unknown,
-    message: Message,
-) => Observable<Message>;
+export type HandleFailureFn = (error: unknown, message: Message) => Observable<Message>;
 
 export class MessageConsumer extends EventEmitter {
     private stream$: Observable<Message[]>;
+    private subscription$: Subscription | null = null;
 
     constructor(
         public readonly queueName: string,
@@ -52,30 +39,46 @@ export class MessageConsumer extends EventEmitter {
     private handleMessage(message: Message): Observable<Message> {
         return this.processMessage(message).pipe(
             tap(() =>
-                this.emit(SQSEventsMap.PROCESS_MESASGE, message.MessageId),
+                this.emit(SQSEventsMap.PROCESS_MESSAGE, { queueName: this.queueName, messageId: message.MessageId }),
             ),
             mergeMap((message) => this.deleteMessage(message)),
             tap(() =>
-                this.emit(SQSEventsMap.DELETE_MESSAGE, message.MessageId),
+                this.emit(SQSEventsMap.DELETE_MESSAGE, { queueName: this.queueName, messageId: message.MessageId }),
             ),
             catchError((error) =>
                 this.handleFailure(error, message).pipe(
                     tap(() =>
-                        this.emit(SQSEventsMap.FAILED, message.MessageId),
+                        this.emit(SQSEventsMap.FAILED, {
+                            error,
+                            queueName: this.queueName,
+                            messageId: message.MessageId,
+                        }),
                     ),
                 ),
             ),
         );
     }
 
-    public async start() {
+    public start(): Subscription {
         //this.logger.log(`Starting consumer for queue ${this.queueName}`);
 
-        this.emit(SQSEventsMap.STARTED);
+        this.subscription$ = this.stream$.subscribe({
+            error: (err) => {
+                this.emit(SQSEventsMap.FAILED, { error: err, queueName: this.queueName });
+            },
+        });
+
+        this.emit(SQSEventsMap.STARTED, this.queueName);
+        return this.subscription$;
     }
 
-    public async stop() {
+    public stop() {
         //this.logger.log(`Stopping consumer for queue ${this.queueName}`);
+
+        if (this.subscription$) {
+            this.subscription$.unsubscribe();
+            this.subscription$ = null;
+        }
 
         this.emit(SQSEventsMap.STOPPED);
     }

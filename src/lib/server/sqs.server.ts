@@ -1,18 +1,13 @@
-import {
-    type Message,
-    ReceiveMessageCommand,
-    type ReceiveMessageCommandOutput,
-    SQSClient,
-} from "@aws-sdk/client-sqs";
+import { type Message, ReceiveMessageCommand, type ReceiveMessageCommandOutput, SQSClient } from "@aws-sdk/client-sqs";
 import { Server } from "@nestjs/microservices";
-import { MessageConsumer } from "lib/consumers/message.consumer";
-import { SqsRecordDeserializer } from "lib/deserializers/sqs.deserializer";
-import { SqsRecordSerializer } from "lib/serializers/sqs.serializer";
+import { MessageConsumer } from "@lib/consumers/message.consumer";
+import { SqsRecordDeserializer } from "@lib/deserializers/sqs.deserializer";
+import { SqsRecordSerializer } from "@lib/serializers/sqs.serializer";
 import { type Observable, from, map, tap } from "rxjs";
-import type { SqsOptions } from "../types/sqs.configuration";
-import { type SQSEvents, SQSEventsMap, SQSStatus } from "./sqs.events";
+import type { SqsOptions } from "@lib/types/sqs.configuration";
+import { type SQSEvents, SQSEventsMap, SQSStatus } from "@lib/server/sqs.events";
 
-export class ServerSQS extends Server<SQSEvents, SQSStatus> {
+export class SQSServer extends Server<SQSEvents, SQSStatus> {
     private readonly SQSClient: SQSClient;
     private readonly messageConsumers = new Array<MessageConsumer>();
     protected pendingEventListeners: Array<{
@@ -25,15 +20,16 @@ export class ServerSQS extends Server<SQSEvents, SQSStatus> {
         this.SQSClient = new SQSClient(options);
     }
 
-    public async listen(
-        callback: (err?: unknown, ...optionalParams: unknown[]) => void,
-    ): Promise<void> {
+    public async listen(callback: (err?: unknown, ...optionalParams: unknown[]) => void): Promise<void> {
         this._status$.next(SQSStatus.CONNECTING);
 
         this.initializeSerializer(this.options);
         this.initializeDeserializer(this.options);
 
-        return this.start(callback).catch(callback);
+        return this.start(callback).catch(() => {
+            this._status$.next(SQSStatus.ERRORED);
+            callback();
+        });
     }
 
     public async close(): Promise<void> {
@@ -48,16 +44,12 @@ export class ServerSQS extends Server<SQSEvents, SQSStatus> {
         return Promise.resolve();
     }
 
-    public async start(
-        callback: (err?: unknown, ...optionalParams: unknown[]) => void,
-    ): Promise<void> {
+    public async start(callback: (err?: unknown, ...optionalParams: unknown[]) => void): Promise<void> {
         this._status$.next(SQSStatus.CONNECTING);
 
         const discoveredQueueNames = this.discoverQueueNames();
         if (discoveredQueueNames.length === 0) {
-            this.logger.warn(
-                "No queue names discovered. Please make sure to register your handlers.",
-            );
+            this.logger.warn("No queue names discovered. Please make sure to register your handlers.");
             return callback();
         }
 
@@ -68,37 +60,26 @@ export class ServerSQS extends Server<SQSEvents, SQSStatus> {
                 (queueName) => this.receiveMessages(queueName),
                 (message) => this.processMessage(message),
                 (message) => this.deleteMessage(message),
-                (error, message) =>
-                    this.handleProcessingFailure(error, message),
+                (error, message) => this.handleProcessingFailure(error, message),
             );
 
-            messageConsumer.on(SQSEventsMap.STARTED, () =>
-                this.logger.log(`Consumer for ${queueName} started`),
-            );
+            messageConsumer.on(SQSEventsMap.STARTED, () => this.logger.log(`Consumer for ${queueName} started`));
 
-            messageConsumer.on(SQSEventsMap.STOPPED, () =>
-                this.logger.log(`Consumer for ${queueName} stopped`),
-            );
+            messageConsumer.on(SQSEventsMap.STOPPED, () => this.logger.log(`Consumer for ${queueName} stopped`));
 
             messageConsumer.on(SQSEventsMap.RECEIVE_MESSAGES, () =>
                 this.logger.log(`Received message from ${queueName}`),
             );
 
-            messageConsumer.on(SQSEventsMap.PROCESS_MESASGE, (messageId) =>
-                this.logger.log(
-                    `Processing message from ${queueName}:#{messageId}`,
-                ),
+            messageConsumer.on(SQSEventsMap.PROCESS_MESSAGE, (messageId) =>
+                this.logger.log(`Processing message from ${queueName}:#{messageId}`),
             );
 
             messageConsumer.on(SQSEventsMap.DELETE_MESSAGE, (messageId) =>
-                this.logger.log(
-                    `Deleting message from ${queueName}:#${messageId}`,
-                ),
+                this.logger.log(`Deleting message from ${queueName}:#${messageId}`),
             );
             messageConsumer.on(SQSEventsMap.FAILED, (messageId) =>
-                this.logger.error(
-                    `Failed processing message from ${queueName}:#${messageId}`,
-                ),
+                this.logger.error(`Failed processing message from ${queueName}:#${messageId}`),
             );
 
             for (const { eventKey, callback } of this.pendingEventListeners) {
@@ -153,9 +134,7 @@ export class ServerSQS extends Server<SQSEvents, SQSStatus> {
 
         return from(this.SQSClient.send(receiveMessageCommand)).pipe(
             tap((commandOutput: ReceiveMessageCommandOutput) =>
-                this.logger.log(
-                    `Received ${commandOutput.Messages?.length} message from ${queueName}`,
-                ),
+                this.logger.log(`Received ${commandOutput.Messages?.length} message from ${queueName}`),
             ),
             map((commandOutput) => commandOutput.Messages ?? []),
         );
@@ -165,10 +144,7 @@ export class ServerSQS extends Server<SQSEvents, SQSStatus> {
         throw new Error("Method not implemented.");
     }
 
-    private handleProcessingFailure(
-        error: unknown,
-        message: Message,
-    ): Observable<Message> {
+    private handleProcessingFailure(error: unknown, message: Message): Observable<Message> {
         throw new Error("Method not implemented.");
     }
 
@@ -185,13 +161,9 @@ export class ServerSQS extends Server<SQSEvents, SQSStatus> {
     }
 
     private discoverQueueNames(): string[] {
-        const patterns = Array.from(this.getHandlers()).map(
-            ([packet, handler]) => {
-                return handler.isEventHandler
-                    ? `${packet}-event-tmp`
-                    : `${packet}-command-tmp`;
-            },
-        );
+        const patterns = Array.from(this.getHandlers()).map(([packet, handler]) => {
+            return handler.isEventHandler ? `${packet}-event-tmp` : `${packet}-command-tmp`;
+        });
 
         return patterns;
     }

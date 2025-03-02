@@ -1,20 +1,40 @@
 {
     "compilerOptions": {
-        "module": "commonjs",
-        "lib": ["ESNext"],
+        "module": "NodeNext",
         "declaration": true,
-        "noImplicitAny": false,
         "removeComments": true,
-        "noLib": false,
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
-        "target": "es6",
-        "sourceMap": false,
+        "allowSyntheticDefaultImports": true,
+        "target": "ES2023",
+        "sourceMap": true,
         "outDir": "./dist",
-        "rootDir": "./lib",
+        "baseUrl": "./",
+        "incremental": true,
         "skipLibCheck": true,
-        "baseUrl": "./"
+        "strictNullChecks": true,
+        "forceConsistentCasingInFileNames": true,
+        "noImplicitAny": false,
+        "strictBindCallApply": false,
+        "noFallthroughCasesInSwitch": false,
+        "paths": {
+            "@lib/*": [
+                "./src/lib/*"
+            ],
+            "@standalone/*": [
+                "./src/standalone/*"
+            ]
+        }
     },
-    "include": ["lib", "e2e"],
-    "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
+    "include": [
+        "src/**/*",
+        "lib/**/*",
+        "standalone/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "test",
+        "**/*spec.ts"
+    ],
 }

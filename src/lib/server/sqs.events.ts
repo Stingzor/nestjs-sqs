@@ -6,7 +6,6 @@ export enum SQSStatus {
     CONNECTED = "connected",
     DISCONNECTING = "disconnecting",
     DISCONNECTED = "disconnected",
-    RECONNECTING = "reconnecting",
     ERRORED = "errored",
 }
 
@@ -15,7 +14,7 @@ export enum SQSEventsMap {
     STOPPED = "stopped",
     FAILED = "failed",
     RECEIVE_MESSAGES = "receiveMessages",
-    PROCESS_MESASGE = "processMessage",
+    PROCESS_MESSAGE = "processMessage",
     DELETE_MESSAGE = "deleteMessage",
 }
 
@@ -24,6 +23,6 @@ export type SQSEvents = {
     [SQSEventsMap.STOPPED]: VoidCallback;
     [SQSEventsMap.FAILED]: OnErrorCallback;
     [SQSEventsMap.RECEIVE_MESSAGES]: VoidCallback;
-    [SQSEventsMap.PROCESS_MESASGE]: VoidCallback;
+    [SQSEventsMap.PROCESS_MESSAGE]: VoidCallback;
     [SQSEventsMap.DELETE_MESSAGE]: VoidCallback;
 };
