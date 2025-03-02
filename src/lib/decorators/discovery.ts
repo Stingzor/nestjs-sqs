@@ -1,4 +1,5 @@
 import { BaseAsyncHandler } from "@lib/types/base.async.handler";
+import { Logger } from "@nestjs/common";
 
 // biome-ignore lint/complexity/noBannedTypes: Base type from Nestjs is of type Function, we cannot use the function definition and sadly, use the deprecated type
 export function findHandlerMethod<T extends Function>(target: T): string {
@@ -11,7 +12,7 @@ export function findHandlerMethod<T extends Function>(target: T): string {
     }
 
     const conventionHandlerMethod = Object.getOwnPropertyNames(target.prototype).find(
-        (prototype) => prototype === BaseAsyncHandler.prototype.handle.name,
+        (prototype) => prototype === "handle",
     );
 
     if (!conventionHandlerMethod) {

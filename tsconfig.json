@@ -18,23 +18,10 @@
         "strictBindCallApply": false,
         "noFallthroughCasesInSwitch": false,
         "paths": {
-            "@lib/*": [
-                "./src/lib/*"
-            ],
-            "@standalone/*": [
-                "./src/standalone/*"
-            ]
+            "@lib/*": ["./src/lib/*"],
+            "@standalone/*": ["./src/standalone/*"]
         }
     },
-    "include": [
-        "src/**/*",
-        "lib/**/*",
-        "standalone/**/*"
-    ],
-    "exclude": [
-        "node_modules",
-        "dist",
-        "test",
-        "**/*spec.ts"
-    ],
+    "include": ["src/**/*", "lib/**/*", "standalone/**/*"],
+    "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
 }

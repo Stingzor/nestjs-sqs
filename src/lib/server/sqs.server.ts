@@ -1,11 +1,11 @@
 import { type Message, ReceiveMessageCommand, type ReceiveMessageCommandOutput, SQSClient } from "@aws-sdk/client-sqs";
-import { Server } from "@nestjs/microservices";
 import { MessageConsumer } from "@lib/consumers/message.consumer";
 import { SqsRecordDeserializer } from "@lib/deserializers/sqs.deserializer";
 import { SqsRecordSerializer } from "@lib/serializers/sqs.serializer";
-import { type Observable, from, map, tap } from "rxjs";
-import type { SqsOptions } from "@lib/types/sqs.configuration";
 import { type SQSEvents, SQSEventsMap, SQSStatus } from "@lib/server/sqs.events";
+import type { SqsOptions } from "@lib/types/sqs.configuration";
+import { Server } from "@nestjs/microservices";
+import { type Observable, from, map, of, tap } from "rxjs";
 
 export class SQSServer extends Server<SQSEvents, SQSStatus> {
     private readonly SQSClient: SQSClient;
@@ -67,8 +67,8 @@ export class SQSServer extends Server<SQSEvents, SQSStatus> {
 
             messageConsumer.on(SQSEventsMap.STOPPED, () => this.logger.log(`Consumer for ${queueName} stopped`));
 
-            messageConsumer.on(SQSEventsMap.RECEIVE_MESSAGES, () =>
-                this.logger.log(`Received message from ${queueName}`),
+            messageConsumer.on(SQSEventsMap.RECEIVE_MESSAGES, (messages) =>
+                this.logger.log(`Received messages ${messages.length} from ${queueName}`),
             );
 
             messageConsumer.on(SQSEventsMap.PROCESS_MESSAGE, (messageId) =>
@@ -124,20 +124,22 @@ export class SQSServer extends Server<SQSEvents, SQSStatus> {
     private receiveMessages(queueName: string): Observable<Message[]> {
         const queueUrl = `${this.options.baseQueueUrl}/${queueName}`;
 
-        const receiveMessageCommand = new ReceiveMessageCommand({
-            QueueUrl: queueUrl,
-            MaxNumberOfMessages: this.options.batchReceiveSize,
-            WaitTimeSeconds: this.options.waitTimeSeconds,
-            MessageAttributeNames: ["All"],
-            MessageSystemAttributeNames: ["All"],
-        });
+        // const receiveMessageCommand = new ReceiveMessageCommand({
+        //     QueueUrl: queueUrl,
+        //     MaxNumberOfMessages: this.options.batchReceiveSize,
+        //     WaitTimeSeconds: this.options.waitTimeSeconds,
+        //     MessageAttributeNames: ["All"],
+        //     MessageSystemAttributeNames: ["All"],
+        // });
 
-        return from(this.SQSClient.send(receiveMessageCommand)).pipe(
-            tap((commandOutput: ReceiveMessageCommandOutput) =>
-                this.logger.log(`Received ${commandOutput.Messages?.length} message from ${queueName}`),
-            ),
-            map((commandOutput) => commandOutput.Messages ?? []),
-        );
+        // return from(this.SQSClient.send(receiveMessageCommand)).pipe(
+        //     tap((commandOutput: ReceiveMessageCommandOutput) =>
+        //         this.logger.log(`Received ${commandOutput.Messages?.length} message from ${queueName}`),
+        //     ),
+        //     map((commandOutput) => commandOutput.Messages ?? []),
+        // );
+
+        return of([]);
     }
 
     private processMessage(message: Message): Observable<Message> {
@@ -162,6 +164,8 @@ export class SQSServer extends Server<SQSEvents, SQSStatus> {
 
     private discoverQueueNames(): string[] {
         const patterns = Array.from(this.getHandlers()).map(([packet, handler]) => {
+            this.logger.log(`${packet} - ${handler.isEventHandler ? "event" : "command"}`);
+
             return handler.isEventHandler ? `${packet}-event-tmp` : `${packet}-command-tmp`;
         });
 

@@ -1,18 +1,18 @@
 {
     "$schema": "https://json.schemastore.org/nest-cli",
     "collection": "@nestjs/schematics",
-    "sourceRoot": "src",
+    "sourceRoot": "./src",
     "compilerOptions": {
         "deleteOutDir": true
     },
     "projects": {
         "standalone": {
-            "sourceRoot": "src/standalone",
+            "sourceRoot": "./src/standalone",
             "generateOptions": {
                 "flat": true,
-                "baseDir": "src/standalone"
+                "baseDir": "./src/standalone"
             },
-            "entryFile": "main"
+            "entryFile": "standalone/main"
         }
     }
 }

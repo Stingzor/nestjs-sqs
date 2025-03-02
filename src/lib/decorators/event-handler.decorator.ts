@@ -1,7 +1,7 @@
+import { findDescritpr, findHandlerMethod } from "@lib/decorators/discovery";
+import type { BaseMessage } from "@lib/types/base.message";
 import { Controller, SetMetadata, applyDecorators } from "@nestjs/common";
 import { EventPattern } from "@nestjs/microservices";
-import type { BaseMessage } from "@lib/types/base.message";
-import { findDescritpr, findHandlerMethod } from "@lib/decorators/discovery";
 
 export function AsyncEventHandler(event: BaseMessage): ClassDecorator {
     return (target) => {

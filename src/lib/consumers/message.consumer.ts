@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
 import type { Message } from "@aws-sdk/client-sqs";
-import { type Observable, type Subscription, catchError, from, map, mergeMap, takeWhile, tap, timer } from "rxjs";
 import { type SQSEvents, SQSEventsMap } from "@lib/server/sqs.events";
+import { type Observable, type Subscription, catchError, from, map, mergeMap, takeWhile, tap, timer } from "rxjs";
 
 export type ReceiveMessagesFn = (queueName: string) => Observable<Message[]>;
 export type DeleteMessageFn = (message: Message) => Observable<Message>;
@@ -24,7 +24,7 @@ export class MessageConsumer extends EventEmitter {
         this.stream$ = timer(0, this.pollingDelayInMilliseconds).pipe(
             takeWhile(() => true),
             mergeMap(() => this.receiveMessages(queueName)),
-            tap(() => this.emit(SQSEventsMap.RECEIVE_MESSAGES)),
+            tap((messages) => this.emit(SQSEventsMap.RECEIVE_MESSAGES, messages)),
             mergeMap((messages) => this.handleMessages(messages)),
         );
     }
