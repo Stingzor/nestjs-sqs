@@ -6,7 +6,7 @@ import { type Observable, type Subscription, catchError, from, map, mergeMap, ta
 export type ReceiveMessagesFn = (queueName: string) => Observable<Message[]>;
 export type DeleteMessageFn = (message: Message) => Observable<Message>;
 export type ProcessMessageFn = (message: Message) => Observable<Message>;
-export type HandleFailureFn = (error: unknown, message: Message) => Observable<Message>;
+export type HandleFailureFn = (error: Error, message: Message) => Observable<Message>;
 
 export class MessageConsumer extends EventEmitter {
     private stream$: Observable<Message[]>;
@@ -24,7 +24,7 @@ export class MessageConsumer extends EventEmitter {
         this.stream$ = timer(0, this.pollingDelayInMilliseconds).pipe(
             takeWhile(() => true),
             mergeMap(() => this.receiveMessages(queueName)),
-            tap((messages) => this.emit(SQSEventsMap.RECEIVE_MESSAGES, messages)),
+            tap((messages) => this.emit(SQSEventsMap.RECEIVED_MESSAGES, messages)),
             mergeMap((messages) => this.handleMessages(messages)),
         );
     }
@@ -39,16 +39,16 @@ export class MessageConsumer extends EventEmitter {
     private handleMessage(message: Message): Observable<Message> {
         return this.processMessage(message).pipe(
             tap(() =>
-                this.emit(SQSEventsMap.PROCESS_MESSAGE, { queueName: this.queueName, messageId: message.MessageId }),
+                this.emit(SQSEventsMap.MESSAGE_PROCESSED, { queueName: this.queueName, messageId: message.MessageId }),
             ),
             mergeMap((message) => this.deleteMessage(message)),
             tap(() =>
-                this.emit(SQSEventsMap.DELETE_MESSAGE, { queueName: this.queueName, messageId: message.MessageId }),
+                this.emit(SQSEventsMap.MESSAGE_DELETED, { queueName: this.queueName, messageId: message.MessageId }),
             ),
-            catchError((error) =>
+            catchError((error: Error) =>
                 this.handleFailure(error, message).pipe(
                     tap(() =>
-                        this.emit(SQSEventsMap.FAILED, {
+                        this.emit(SQSEventsMap.MESSAGE_PROCESSING_FAILED, {
                             error,
                             queueName: this.queueName,
                             messageId: message.MessageId,
@@ -64,7 +64,7 @@ export class MessageConsumer extends EventEmitter {
 
         this.subscription$ = this.stream$.subscribe({
             error: (err) => {
-                this.emit(SQSEventsMap.FAILED, { error: err, queueName: this.queueName });
+                this.emit(SQSEventsMap.MESSAGE_PROCESSING_FAILED, { error: err, queueName: this.queueName });
             },
         });
 

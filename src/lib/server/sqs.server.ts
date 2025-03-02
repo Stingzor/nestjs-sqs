@@ -26,9 +26,10 @@ export class SQSServer extends Server<SQSEvents, SQSStatus> {
         this.initializeSerializer(this.options);
         this.initializeDeserializer(this.options);
 
-        return this.start(callback).catch(() => {
+        return this.start(callback).catch((error) => {
+            this.logger.error("We were unable to start the SQS Server, please check your configuration.", error);
             this._status$.next(SQSStatus.ERRORED);
-            callback();
+            callback(error);
         });
     }
 
@@ -67,18 +68,18 @@ export class SQSServer extends Server<SQSEvents, SQSStatus> {
 
             messageConsumer.on(SQSEventsMap.STOPPED, () => this.logger.log(`Consumer for ${queueName} stopped`));
 
-            messageConsumer.on(SQSEventsMap.RECEIVE_MESSAGES, (messages) =>
+            messageConsumer.on(SQSEventsMap.RECEIVED_MESSAGES, (messages) =>
                 this.logger.log(`Received messages ${messages.length} from ${queueName}`),
             );
 
-            messageConsumer.on(SQSEventsMap.PROCESS_MESSAGE, (messageId) =>
+            messageConsumer.on(SQSEventsMap.MESSAGE_PROCESSED, (messageId) =>
                 this.logger.log(`Processing message from ${queueName}:#{messageId}`),
             );
 
-            messageConsumer.on(SQSEventsMap.DELETE_MESSAGE, (messageId) =>
+            messageConsumer.on(SQSEventsMap.MESSAGE_DELETED, (messageId) =>
                 this.logger.log(`Deleting message from ${queueName}:#${messageId}`),
             );
-            messageConsumer.on(SQSEventsMap.FAILED, (messageId) =>
+            messageConsumer.on(SQSEventsMap.MESSAGE_PROCESSING_FAILED, (messageId) =>
                 this.logger.error(`Failed processing message from ${queueName}:#${messageId}`),
             );
 
@@ -146,11 +147,11 @@ export class SQSServer extends Server<SQSEvents, SQSStatus> {
         throw new Error("Method not implemented.");
     }
 
-    private handleProcessingFailure(error: unknown, message: Message): Observable<Message> {
+    private handleProcessingFailure(error: Error, message: Message): Observable<Message> {
         throw new Error("Method not implemented.");
     }
 
-    deleteMessage(message: Message): Observable<Message> {
+    private deleteMessage(message: Message): Observable<Message> {
         throw new Error("Method not implemented.");
     }
 
